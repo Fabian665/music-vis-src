@@ -7,9 +7,10 @@ class SpotifyAPI:
         self.sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials())
 
     def search_track(self, song_name: str, artist_name: str = None, album_name: str = None):
-        query = f'track:{song_name}'
-        if artist_name:
-            query += f' artist:{artist_name}'
-        if album_name:
-            query += f' album:{album_name}'
-        return self.sp.search(query, type='track', limit=1)
+        # query = f'track:{song_name}'
+        # if artist_name:
+        #     query += f' artist:{artist_name}'
+        # if album_name:
+        #     query += f' album:{album_name}'
+        query = f'{song_name} {artist_name} {album_name}'
+        return self.sp.search(query, type='track', limit=1, market='IL')
