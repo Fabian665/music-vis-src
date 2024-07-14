@@ -1,6 +1,4 @@
 import streamlit as st
-# from spotify import SpotifyAPI
-# import streamlit.components.v1 as components
 
 
 st.set_page_config(
