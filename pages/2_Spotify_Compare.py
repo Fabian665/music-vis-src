@@ -6,7 +6,33 @@ import numpy as np
 import plotly.graph_objects as go
 
 
-glz_df = pd.read_csv('/data/galgalaz_expanded.csv')
+@st.cache_data
+def read_data():
+    data = pd.read_csv('/data/galgalaz_expanded.csv')
+    data['date'] = pd.to_datetime(data['date'])
+    data['year'] = data['date'].dt.year
+    data['month'] = data['date'].dt.month
+    return data
+
+@st.cache_data()
+def split_data(split_feature):
+    if split_feature == 'None':
+        return {None: abs(glz_df[features].values)}
+    split_feature_unique_values = glz_df[split_feature].unique()
+    data_slices = {value: abs(glz_df[glz_df[split_feature] == value][features].values) for value in split_feature_unique_values}
+    return data_slices
+
+@st.cache_data()
+def data_scale_values(data_slices):
+    if len(data_slices) == 1:
+        return data_slices[None].min(axis=0), data_slices[None].max(axis=0)
+    min_values = np.minimum.reduce([features_values.min(axis=0) for features_values in data_slices.values()])
+    max_values = np.maximum.reduce([features_values.max(axis=0) for features_values in data_slices.values()])
+    return min_values, max_values
+
+st.cache_data()
+def get_mean_of_features(data):
+    return data.mean(axis=0)
 
 # List of features to include in the radar chart
 features = ['track_danceability', 'track_energy', 'track_valence', 'track_tempo', 'track_loudness']
@@ -88,18 +114,10 @@ with st.form('compare_songs'):
     else:
         st.write('Song not found')
 
-glz_df['date'] = pd.to_datetime(glz_df['date'])
+glz_df = read_data()
+data_slices = split_data('year')
 
-split_feature = 'market'
-split_feature_unique_values = glz_df[split_feature].unique()
-
-# Ensure the 'date' column is in datetime format
-
-# Separate data based on split feature
-data_slices = {value: abs(glz_df[glz_df[split_feature] == value][features].values) for value in split_feature_unique_values}
-
-min_values = np.minimum.reduce([features_values.min(axis=0) for features_values in data_slices.values()])
-max_values = np.maximum.reduce([features_values.max(axis=0) for features_values in data_slices.values()])
+min_values, max_values = data_scale_values(data_slices)
 
 if st.session_state.queried_song['features'] is not None:
     res = abs(st.session_state.queried_song['features'])
@@ -109,16 +127,14 @@ if st.session_state.queried_song['features'] is not None:
 else:
     res = None
 
-data_slices = {value: ((features_values - min_values) / (max_values - min_values)) for value, features_values in data_slices.items()}
+data_slices = {value: ((get_mean_of_features(features_values) - min_values) / (max_values - min_values)) for value, features_values in data_slices.items()}
 
 # Create radar charts for IL and INTL
 fig = go.Figure()
 
 for value, features_values in data_slices.items():
-    features_trace_values = features_values.mean(axis=0)
+    features_trace_values = features_values
     features_trace_values =  np.concatenate((features_trace_values, np.array([features_trace_values[0]])))
-    print(features_trace_values)
-    print(features_repeated)
     fig.add_trace(go.Scatterpolar(
         r=features_trace_values,
         theta=features_repeated,
