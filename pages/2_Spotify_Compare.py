@@ -39,6 +39,45 @@ features = ['track_danceability', 'track_energy', 'track_valence', 'track_tempo'
 features_names = ['danceability', 'energy', 'valence', 'tempo', 'loudness']
 features_repeated = features + [features[0]]
 
+split_feature_names = {
+    'year': {},
+    'month': {
+        1: 'January',
+        2: 'February',
+        3: 'March',
+        4: 'April',
+        5: 'May',
+        6: 'June',
+        7: 'July',
+        8: 'August',
+        9: 'September',
+        10: 'October',
+        11: 'November',
+        12: 'December',
+    },
+    'market': {
+        'IL': 'Israel',
+        'INTL': 'International',
+    },
+    'track_key': {
+        -1: 'N/A',
+        0: 'C',
+        1: 'C♯, D♭',
+        2: 'D',
+        3: 'D♯, E♭',
+        4: 'E',
+        5: 'F',
+        6: 'F♯, G♭',
+        7: 'G',
+        8: 'G♯, A♭',
+        9: 'A',
+        10: 'A♯, B♭',
+        11: 'B',
+    },
+    'None': {
+        None: 'Total mean',
+    },
+}
 
 if 'spotify' not in st.session_state:
     st.session_state.spotify = SpotifyAPI()
@@ -104,18 +143,23 @@ with st.form('compare_songs'):
         with col1:
             st.image(st.session_state.queried_song['image_url'], width=200, use_column_width=True)
         with col2:
-            st.write(f"Song name: {track['name']}")
-            st.write(f"Artist: {track['artists'][0]['name']}")
-            st.write(f"Album: {track['album']['name']}")
-            st.write(f"Release date: {track['album']['release_date']}")
-        if track['preview_url']:
-            url = track['preview_url']
+            st.write(f"Song name: {st.session_state.queried_song['name']}")
+            st.write(f"Artist: {st.session_state.queried_song['artist']}")
+            st.write(f"Album: {st.session_state.queried_song['album']}")
+            st.write(f"Release date: {st.session_state.queried_song['release_date']}")
+        if st.session_state.queried_song['preview_url']:
+            url = st.session_state.queried_song['preview_url']
             play_audio(url, volume=0.2)
     else:
         st.write('Song not found')
 
+split_feature = st.selectbox(
+    'Split data by:',
+    ['None', 'year', 'month', 'market', 'track_key'],
+)
+
 glz_df = read_data()
-data_slices = split_data('year')
+data_slices = split_data(split_feature)
 
 min_values, max_values = data_scale_values(data_slices)
 
@@ -135,21 +179,28 @@ fig = go.Figure()
 for value, features_values in data_slices.items():
     features_trace_values = features_values
     features_trace_values =  np.concatenate((features_trace_values, np.array([features_trace_values[0]])))
+    name = split_feature_names[split_feature].get(value, str(value))
     fig.add_trace(go.Scatterpolar(
         r=features_trace_values,
         theta=features_repeated,
-        name=value,
+        name=name,
+        # fill='toself',
     ))
 
 if res is not None:
     res_trace_values = np.concatenate((res, np.array([res[0]])))
+    song_name = st.session_state.queried_song['name']
+    artist_name = st.session_state.queried_song['artist']
     fig.add_trace(go.Scatterpolar(
         r=res_trace_values,
         theta=features_repeated,
-        name='Res',
+        name=f'{song_name} by {artist_name}',
+        line=dict(color='red'),
+        marker=dict(color='red'),
+        fill='toself',
     ))
 
-fig.update_traces(fill='toself')
+# fig.update_traces(fill='toself')
 
 # Update layout
 fig.update_layout(
