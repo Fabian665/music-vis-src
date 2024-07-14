@@ -35,8 +35,7 @@ def get_mean_of_features(data):
     return data.mean(axis=0)
 
 # List of features to include in the radar chart
-features = ['track_danceability', 'track_energy', 'track_valence', 'track_tempo', 'track_loudness']
-features_names = ['danceability', 'energy', 'valence', 'tempo', 'loudness']
+features = ['danceability', 'energy', 'valence', 'tempo', 'loudness']
 features_repeated = features + [features[0]]
 
 split_feature_names = {
@@ -59,7 +58,7 @@ split_feature_names = {
         'IL': 'Israel',
         'INTL': 'International',
     },
-    'track_key': {
+    'key': {
         -1: 'N/A',
         0: 'C',
         1: 'C♯, D♭',
@@ -128,7 +127,7 @@ with st.form('compare_songs'):
             st.session_state.queried_song['release_date'] = track['album']['release_date']
             st.session_state.queried_song['preview_url'] = track['preview_url']
             st.session_state.queried_song['image_url'] = track['album']['images'][0]['url']
-            st.session_state.queried_song['features'] = np.array([audio_features[feature] for feature in features_names])
+            st.session_state.queried_song['features'] = np.array([audio_features[feature] for feature in features])
         else:
             st.session_state.queried_song['name'] = None
             st.session_state.queried_song['artist'] = None
@@ -155,7 +154,7 @@ with st.form('compare_songs'):
 
 split_feature = st.selectbox(
     'Split data by:',
-    ['None', 'year', 'month', 'market', 'track_key'],
+    ['None', 'year', 'month', 'market', 'key'],
 )
 
 glz_df = read_data()
