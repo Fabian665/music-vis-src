@@ -1,31 +1,46 @@
 import streamlit as st
 from spotify import SpotifyAPI
 import streamlit.components.v1 as components
+from streamlit.logger import get_logger
+from ast import literal_eval
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
 
+logger = get_logger(__name__)
 
 @st.cache_data
 def read_data():
-    data = pd.read_csv('/data/galgalaz_expanded.csv')
-    data['date'] = pd.to_datetime(data['date'])
-    data['year'] = data['date'].dt.year
-    data['month'] = data['date'].dt.month
-    return data
+    glz_df = pd.read_csv('/data/galgalaz_expanded.csv')
+
+    glz_df['artist_genres'] = glz_df['artist_genres'].apply(lambda x: literal_eval(x) if isinstance(x, str) else np.nan)
+    glz_df['simplified_artist_genres'] = glz_df['simplified_artist_genres'].apply(lambda x: literal_eval(x) if isinstance(x, str) else np.nan)
+    glz_df['simplified_artist_israeli_genres'] = glz_df['simplified_artist_israeli_genres'].apply(lambda x: literal_eval(x) if isinstance(x, str) else np.nan)
+    return glz_df
 
 @st.cache_data()
-def split_data(split_feature):
+def genre_mask(genre):
+    ret = glz_df[split_feature].apply(predicate, args=(genre, ))
+    return ret
+
+def predicate(artist_genres, genre):
+    return genre in artist_genres if isinstance(artist_genres, list) else False
+
+@st.cache_data()
+def split_data(genres, split_feature, output_features):
     if split_feature == 'None':
-        return {None: abs(glz_df[features].values)}
-    split_feature_unique_values = glz_df[split_feature].unique()
-    data_slices = {value: abs(glz_df[glz_df[split_feature] == value][features].values) for value in split_feature_unique_values}
-    return data_slices
+        return {None: abs(glz_df[output_features].values)}
+    
+    dfs = (glz_df[genre_mask(genre)] for genre in genres)
+    
+    genre_feature_values = {genre: abs(df[output_features].values) for df, genre in zip(dfs, genres)}
+    return genre_feature_values
 
 @st.cache_data()
 def data_scale_values(data_slices):
     if len(data_slices) == 1:
-        return data_slices[None].min(axis=0), data_slices[None].max(axis=0)
+        key = next(iter(data_slices))
+        return data_slices[key].min(axis=0), data_slices[key].max(axis=0)
     min_values = np.minimum.reduce([features_values.min(axis=0) for features_values in data_slices.values()])
     max_values = np.maximum.reduce([features_values.max(axis=0) for features_values in data_slices.values()])
     return min_values, max_values
@@ -152,64 +167,74 @@ with st.form('compare_songs'):
     else:
         st.write('Song not found')
 
-split_feature = st.selectbox(
-    'Split data by:',
-    ['None', 'year', 'month', 'market', 'key'],
-)
+split_feature = 'simplified_artist_genres'
 
 glz_df = read_data()
-data_slices = split_data(split_feature)
 
-min_values, max_values = data_scale_values(data_slices)
-
-if st.session_state.queried_song['features'] is not None:
-    res = abs(st.session_state.queried_song['features'])
-    min_values = np.minimum(min_values, res)
-    max_values = np.maximum(max_values, res)
-    res = (res - min_values) / (max_values - min_values)
-else:
-    res = None
-
-data_slices = {value: ((get_mean_of_features(features_values) - min_values) / (max_values - min_values)) for value, features_values in data_slices.items()}
-
-# Create radar charts for IL and INTL
-fig = go.Figure()
-
-for value, features_values in data_slices.items():
-    features_trace_values = features_values
-    features_trace_values =  np.concatenate((features_trace_values, np.array([features_trace_values[0]])))
-    name = split_feature_names[split_feature].get(value, str(value))
-    fig.add_trace(go.Scatterpolar(
-        r=features_trace_values,
-        theta=features_repeated,
-        name=name,
-        # fill='toself',
-    ))
-
-if res is not None:
-    res_trace_values = np.concatenate((res, np.array([res[0]])))
-    song_name = st.session_state.queried_song['name']
-    artist_name = st.session_state.queried_song['artist']
-    fig.add_trace(go.Scatterpolar(
-        r=res_trace_values,
-        theta=features_repeated,
-        name=f'{song_name} by {artist_name}',
-        line=dict(color='red'),
-        marker=dict(color='red'),
-        fill='toself',
-    ))
-
-# fig.update_traces(fill='toself')
-
-# Update layout
-fig.update_layout(
-    polar=dict(
-        radialaxis=dict(
-            visible=True,
-            range=[0, 1]
-        )),
-    showlegend=True,
-    title='Radar Chart of Mean Feature Values for IL and INTL'
+genres = st.multiselect(
+    'Select genres to compare',
+    ['pop', 'rock', 'punk', 'metal', 'mizrahi', 'mediterranean', 'hip hop', 'rap', 'blues', 'r&b', 'funk', 'soul', 'reggaeton', 'folk', 'country', 'dance', 'edm', 'trance', 'indie'],
+    ['pop', 'country', 'soul', 'edm'],
+    format_func=lambda genre: genre.title(),
+    max_selections=5
 )
 
-fig
+def polar_graph(genres, split_feature, output_features):
+    data_slices = split_data(genres, split_feature, output_features)
+
+    min_values, max_values = data_scale_values(data_slices)
+
+    if st.session_state.queried_song['features'] is not None:
+        res = abs(st.session_state.queried_song['features'])
+        min_values = np.minimum(min_values, res)
+        max_values = np.maximum(max_values, res)
+        res = (res - min_values) / (max_values - min_values)
+    else:
+        res = None
+
+    data_slices = {value: ((get_mean_of_features(features_values) - min_values) / (max_values - min_values)) for value, features_values in data_slices.items()}
+
+    # Create radar charts for IL and INTL
+    fig = go.Figure()
+
+    for value, features_values in data_slices.items():
+        features_trace_values = features_values
+        features_trace_values =  np.concatenate((features_trace_values, np.array([features_trace_values[0]])))
+        name = value.title()
+        fig.add_trace(go.Scatterpolar(
+            r=features_trace_values,
+            theta=features_repeated,
+            name=name,
+            # fill='toself',
+        ))
+
+    if res is not None:
+        res_trace_values = np.concatenate((res, np.array([res[0]])))
+        song_name = st.session_state.queried_song['name']
+        artist_name = st.session_state.queried_song['artist']
+        fig.add_trace(go.Scatterpolar(
+            r=res_trace_values,
+            theta=features_repeated,
+            name=f'{song_name} by {artist_name}',
+            line=dict(color='red'),
+            marker=dict(color='red'),
+            # fill='toself',
+        ))
+
+    # fig.update_traces(fill='toself')
+
+    # Update layout
+    fig.update_layout(
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1]
+            )),
+        showlegend=True,
+        title='Radar Chart of Mean Feature Values for IL and INTL'
+    )
+
+    return fig
+
+graph = polar_graph(genres, split_feature, features)
+st.plotly_chart(graph, use_container_width=True)
