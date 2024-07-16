@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+import plotly.express as px
 import numpy as np
 from numpy.polynomial import Polynomial
 from ast import literal_eval
@@ -8,8 +9,10 @@ from datetime import datetime, timedelta
 from spotify import SpotifyAPI
 from PIL import Image, ImageDraw
 import requests
+from streamlit.logger import get_logger
 from io import BytesIO
 
+logger = get_logger(__name__)
 
 if 'spotify' not in st.session_state:
     st.session_state.spotify = SpotifyAPI()
@@ -69,6 +72,16 @@ def get_artist_song_count(df):
     return artist_song_count
 
 @st.cache_data
+def get_track_count(df):
+  track_count = (
+      df.groupby(["main_artist_name", "track_name"])
+      .size()
+      .reset_index(name="track_count")
+      .sort_values(by="track_count", ascending=False)
+  )
+  return track_count
+
+@st.cache_data
 def filter_dataframe(df, *args):
     filtered_df = df.copy()
 
@@ -81,15 +94,14 @@ def filter_dataframe(df, *args):
 @st.cache_data
 def get_filter_mask(df, arg):
     col_name, criterion = arg
-    if col_name == 'date':
+    if criterion is None:
+        return np.ones(df.shape[0], dtype=bool)
+    elif col_name == 'date':
         return (df['date'] >= criterion[0]) & (df['date'] <= criterion[1])
     elif col_name == 'rank':
         return df['rank'] <= criterion
     elif col_name == 'market':
-        if criterion in ['IL', 'INTL']:
-            return df['market'] == criterion
-        else:
-            return np.ones(len(df), dtype=bool)
+        return df['market'] == criterion
     else:
         return df[col_name] == criterion
 
@@ -125,8 +137,9 @@ def circle_image(image_url):
 
 glz_df = read_data()
 
-
-# p = get_polynomial()
+@st.cache_data
+def get_date_range(df):
+    return df['date'].agg(['min', 'max'])
 
 @st.cache_data(show_spinner=False)
 def plot_scatter_song_length(glz_df):
@@ -142,7 +155,7 @@ def plot_scatter_song_length(glz_df):
         name='Song Length'
     ))
 
-    x_range = distinct_songs['date'].agg(['min', 'max'])
+    x_range = get_date_range(distinct_songs)
     y_range = [datetime.fromtimestamp(polynomial(x)) for x in x_range.apply(lambda x: x.timestamp()).tolist()]
     
     fig.add_trace(go.Scatter(
@@ -172,19 +185,50 @@ def plot_scatter_song_length(glz_df):
 
     return fig
 
+st.plotly_chart(plot_scatter_song_length(glz_df))
+
+with st.form('filter_selection'):
+    st.header('Filter Selection')
+    market_labels = {
+        None: 'All Markets',
+        'IL': 'Isreal',
+        'INTL': 'International',
+    }
+    market = st.selectbox(
+        'Market',
+        [None, 'IL', 'INTL'],
+        key='market',
+        format_func=lambda x: market_labels[x],
+    )
+    rank = st.slider("Max rank", 0, 10, 5, 1, help='Will only filter for songs ranked better than this number (1 is the best)')
+    min_date, max_date = get_date_range(glz_df)
+    date = st.date_input(
+        "Select your vacation for next year",
+        (min_date, max_date),
+        min_value=min_date,
+        max_value=max_date,
+        format="YYYY-MM-DD",
+    )
+    if isinstance(date, tuple):
+        date = (np.datetime64(date[0]), np.datetime64(date[1]))
+    else:
+        date = np.datetime64(date)
+    st.form_submit_button('Filter', help='Click to filter the data', use_container_width=True)
+
+
 @st.cache_data(show_spinner=False)
-def plot_artist_stats(market, year, rank):
+def plot_artist_stats(market, year, rank, date):
     market_data = filter_dataframe(
-        glz_df,
+        read_data(),
         ('market', market),
         ('year', year),
-        ('rank', rank)
+        ('rank', rank),
+        ('date', date),
     )
-
-    top_ranked_songs = market_data[market_data['rank'] <= rank]
+    # top_ranked_songs = market_data[market_data['rank'] <= rank]
 
     # Calculate the number of weeks each song stays in the top 10
-    plot_df = get_artist_song_count(top_ranked_songs)
+    plot_df = get_artist_song_count(market_data)
     plot_df = plot_df.nlargest(10, 'unique_tracks')
 
     # Create dictionary of artists images
@@ -247,5 +291,32 @@ def plot_artist_stats(market, year, rank):
 
     return fig
 
-st.plotly_chart(plot_scatter_song_length(glz_df))
-st.plotly_chart(plot_artist_stats('INTL', 2018, 5))
+@st.cache_data(show_spinner=False)
+def plot_top_artists_with_songs(market, year, rank, date):
+    market_data = filter_dataframe(
+        glz_df,
+        ('market', market),
+        ('year', year),
+        ('rank', rank),
+        ('date', date),
+    )
+
+    # Get the top 5 artists
+    data = get_track_count(market_data)
+    top_5_artists = set(data.groupby('main_artist_name')['track_count'].sum().nlargest(5, keep='all').index)
+    top_5_data = data[data['main_artist_name'].isin(top_5_artists)]
+
+    # Create a stacked bar chart for the top 5 artists and their songs
+    fig = px.bar(top_5_data, x='main_artist_name', y='track_count', color='track_name',
+                 labels={'main_artist_name': 'Artist', 'track_count': f'Number of Times Ranked {rank} or higher', 'track_name': 'Song'},
+                 title=f"Leading Artists in {year} ({market})")
+
+    # Update layout for better readability and sort from largest to smallest
+    fig.update_layout(template='plotly_white', xaxis=dict(categoryorder='total descending', tickangle=45))
+
+    return fig
+
+year = None
+
+st.plotly_chart(plot_artist_stats(market, year, rank, date))
+st.plotly_chart(plot_top_artists_with_songs(market, year, rank, date))
