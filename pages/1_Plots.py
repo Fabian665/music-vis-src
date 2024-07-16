@@ -8,9 +8,9 @@ import numpy as np
 glz_df = pd.read_csv('/data/galgalaz_expanded.csv')
 glz_df['date'] = pd.to_datetime(glz_df['date'])
 glz_df['year'] = glz_df['date'].dt.year
-glz_df['track_duration'] = pd.to_datetime(glz_df['track_duration'], unit='ms')
+glz_df['duration'] = pd.to_datetime(glz_df['duration'], unit='ms')
 
-data = dict(glz_df.groupby('year').track_duration.apply(np.array).sort_index(ascending=False))
+data = dict(glz_df.groupby('year').duration.apply(np.array).sort_index(ascending=False))
 
 # data = glz_df
 colors = n_colors('rgb(5, 200, 200)', 'rgb(200, 10, 10)', 12, colortype='rgb')
