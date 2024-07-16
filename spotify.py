@@ -14,3 +14,10 @@ class SpotifyAPI:
         #     query += f' album:{album_name}'
         query = f'{song_name} {artist_name} {album_name}'
         return self.sp.search(query, type='track', limit=1, market='IL')
+    
+    def get_artists_images(self, artists_uris):
+        images = {}
+        response = self.sp.artists(artists_uris)
+        for artist in response['artists']:
+            images[artist['name']] = artist['images'][-1]['url']
+        return images
