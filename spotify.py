@@ -15,6 +15,10 @@ class SpotifyAPI:
         query = f'{song_name} {artist_name} {album_name}'
         return self.sp.search(query, type='track', limit=1, market='IL')
     
+    def get_features(self, uri: str):
+        return self.sp.audio_features(uri)
+
+    
     def get_artists_images(self, artists_uris):
         images = {}
         response = self.sp.artists(artists_uris)
