@@ -144,6 +144,7 @@ def get_date_range(df):
 @st.cache_data(show_spinner=False)
 def plot_scatter_song_length(glz_df):
     distinct_songs, polynomial = get_distinct_songs(glz_df)
+    text = distinct_songs.apply(lambda x: f"{x['track_name']} by {x['main_artist_name']}", axis=1)
 
     fig = go.Figure()
 
@@ -152,25 +153,32 @@ def plot_scatter_song_length(glz_df):
         x=distinct_songs['date'],
         y=distinct_songs['duration_dt'],
         mode='markers',
-        name='Song Length'
+        name='Song',
+        text=text,  # Add song names for hover text
+        hovertemplate='%{text}<br>(%{x}, %{y})'  # Customize hover template
     ))
 
     x_range = get_date_range(distinct_songs)
     y_range = [datetime.fromtimestamp(polynomial(x)) for x in x_range.apply(lambda x: x.timestamp()).tolist()]
-    
+
     fig.add_trace(go.Scatter(
         x=x_range,
         y=y_range,
         mode='lines',
-        line=dict(width=5)
+        line=dict(width=5),
+        name='Trend Line'
     ))
 
     # Update layout
     fig.update_layout(
-        title='Song Length Over Time',
+        title={
+            'text': 'Song Duration Over Time',
+            'x': 0.5,  # Centering the title
+            'xanchor': 'center'
+        },
         xaxis_title='Date',
-        yaxis_title='Song Length (minutes:seconds)',
-        xaxis_tickformatstops = [
+        yaxis_title='Song Duration (minutes:seconds)',
+        xaxis_tickformatstops=[
             dict(dtickrange=[604800000, "M1"], value="%d/%m/%y"),
             dict(dtickrange=["M1", "M12"], value="%b %Y"),
             dict(dtickrange=["Y1", None], value="%Y")
@@ -200,7 +208,7 @@ with st.form('filter_selection'):
         key='market',
         format_func=lambda x: market_labels[x],
     )
-    rank = st.slider("Max rank", 0, 10, 5, 1, help='Will only filter for songs ranked better than this number (1 is the best)')
+    rank = st.slider("Max rank", 1, 10, 5, 1, help='Will only filter for songs ranked better than this number (1 is the best)')
     min_date, max_date = get_date_range(glz_df)
     date = st.date_input(
         "Select your vacation for next year",
@@ -233,18 +241,21 @@ def plot_artist_stats(market, year, rank, date):
 
     # Create dictionary of artists images
     uris = plot_df['main_artist'].tolist()
-    artist_photos = st.session_state['spotify'].get_artists_images(uris)
+
+    # DONOT DELETE
+    artist_photos = st.session_state['spotify'].get_artists_images(uris)  # dashboard
+    # artist_photos = get_artists_images(uris)  # colab
 
     # Create a scatter plot for the number of different songs and average song time on the billboard
     fig = go.Figure()
 
-    
+
     # Add dots for average weeks in top 10
     fig.add_trace(go.Scatter(
         x=plot_df['Artist'],
         y=plot_df['unique_tracks'],
         mode='markers+lines',
-        name='Average Weeks in Top 10',
+        name='Songs on Billboard',
         marker=dict(color='blue', size=10)
     ))
 
@@ -276,18 +287,24 @@ def plot_artist_stats(market, year, rank, date):
         x=plot_df['Artist'],
         y=plot_df['ratio'],
         mode='markers+lines',
-        name='Average Weeks in Top 10',
-        marker=dict(color='orange', size=10)
+        name='Average Weeks on Billboard',
+        marker=dict(color='orange', size=10),
+        hovertemplate='%{y:.2f} weeks'
     ))
 
     # Update layout
     fig.update_layout(
-        title=f'Number of Different Songs and Average Song Time in Billboard for Top 10 Artists ({market})',
+        title={
+            'text': f'Artist Impact ({market})<br><sup>Number of Songs and Average Song Time on Billboard for Top 10 Artists</sup>',
+            'x': 0.5,  # Centering the title and subtitle
+            'xanchor': 'center'
+        },
         xaxis=dict(title='Artist'),
-        yaxis=dict(title='Count / Weeks in Top 10', range=[0, 1.15 * max_x]),
+        yaxis=dict(title='Weeks', range=[0, 1.15 * max_x]),
         template='plotly_white',
         showlegend=True
     )
+
 
     return fig
 
