@@ -144,7 +144,6 @@ def get_date_range(df):
 @st.cache_data(show_spinner=False)
 def plot_scatter_song_length(glz_df):
     distinct_songs, polynomial = get_distinct_songs(glz_df)
-    text = distinct_songs.apply(lambda x: f"{x['track_name']} by {x['main_artist_name']}", axis=1)
 
     fig = go.Figure()
 
@@ -154,8 +153,9 @@ def plot_scatter_song_length(glz_df):
         y=distinct_songs['duration_dt'],
         mode='markers',
         name='Song',
-        text=text,  # Add song names for hover text
-        hovertemplate='%{text}<br>(%{x}, %{y})'  # Customize hover template
+        text=distinct_songs['track_name'],  # Add song names for hover text
+        hovertemplate='%{text}<br>(%{x}, %{y})',  # Customize hover template
+        marker=dict(color='#F6B8B8')  # First color for scatter points
     ))
 
     x_range = get_date_range(distinct_songs)
@@ -165,7 +165,7 @@ def plot_scatter_song_length(glz_df):
         x=x_range,
         y=y_range,
         mode='lines',
-        line=dict(width=5),
+        line=dict(width=5, color='#A89CFF'),  # Darker color for trend line
         name='Trend Line'
     ))
 
@@ -189,6 +189,16 @@ def plot_scatter_song_length(glz_df):
             range=[datetime(1970, 1, 1, 0, 0), distinct_songs['duration_dt'].max() + timedelta(seconds=15)]
         ),
         template='plotly_white',
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="right",
+            x=0.99
+        ),
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=16,
+        )
     )
 
     return fig
@@ -236,10 +246,12 @@ else:
         format="YYYY-MM-DD",
         help='Select a date range to filter data'
     )
-    if isinstance(date, tuple):
-        date = (np.datetime64(date[0]), np.datetime64(date[1]))
-    else:
-        date = np.datetime64(date)
+    try:
+        start_date, end_date = date
+        date = np.datetime64(start_date), np.datetime64(end_date)
+    except ValueError:
+        st.error("You must pick a start and end date")
+        st.stop()
 
 
 @st.cache_data(show_spinner=False)
@@ -251,7 +263,6 @@ def plot_artist_stats(market, year, rank, date):
         ('rank', rank),
         ('date', date),
     )
-    # top_ranked_songs = market_data[market_data['rank'] <= rank]
 
     # Calculate the number of weeks each song stays in the top 10
     plot_df = get_artist_song_count(market_data)
@@ -267,14 +278,13 @@ def plot_artist_stats(market, year, rank, date):
     # Create a scatter plot for the number of different songs and average song time on the billboard
     fig = go.Figure()
 
-
     # Add dots for average weeks in top 10
     fig.add_trace(go.Scatter(
         x=plot_df['Artist'],
         y=plot_df['unique_tracks'],
-        mode='markers+lines',
+        mode='markers',
         name='Songs on Billboard',
-        marker=dict(color='blue', size=10)
+        marker=dict(color='#F6B8B8', size=10)
     ))
 
     max_x = plot_df[['unique_tracks', 'ratio']].max().max()
@@ -306,23 +316,38 @@ def plot_artist_stats(market, year, rank, date):
         y=plot_df['ratio'],
         mode='markers+lines',
         name='Average Weeks on Billboard',
-        marker=dict(color='orange', size=10),
-        hovertemplate='%{y:.2f} weeks'
+        marker=dict(color='#D7CCF6', size=10)
     ))
+
+    # Determine the time period text
+    if year:
+        time_period = f"in {year}"
+    else:
+        start_date, end_date = date
+        time_period = f"from {pd.to_datetime(start_date).strftime('%d.%m.%Y')} to {pd.to_datetime(end_date).strftime('%d.%m.%y')}"
 
     # Update layout
     fig.update_layout(
         title={
-            'text': f'Artist Impact ({market})<br><sup>Number of Songs and Average Song Time on Billboard for Top 10 Artists</sup>',
+            'text': f'Artist Impact ({market})<br><sup>Number of Songs and Average Song Time on Billboard for Top 10 Artists {time_period}</sup>',
             'x': 0.5,  # Centering the title and subtitle
             'xanchor': 'center'
         },
         xaxis=dict(title='Artist'),
         yaxis=dict(title='Weeks', range=[0, 1.15 * max_x]),
         template='plotly_white',
-        showlegend=True
+        showlegend=True,
+        legend=dict(
+            yanchor="top",
+            y=0.99,
+            xanchor="right",
+            x=0.99
+        ),
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=16,
+        )
     )
-
 
     return fig
 
@@ -338,16 +363,44 @@ def plot_top_artists_with_songs(market, year, rank, date):
 
     # Get the top 5 artists
     data = get_track_count(market_data)
-    top_5_artists = set(data.groupby('main_artist_name')['track_count'].sum().nlargest(5, keep='all').index)
-    top_5_data = data[data['main_artist_name'].isin(top_5_artists)]
+    top_artists = list(data.groupby('main_artist_name')['track_count'].sum().nlargest(5, keep='all').index)
+    top_data = data[data['main_artist_name'].isin(top_artists)]
+
+    # Determine y-axis title and subtitle
+    if rank is None:
+        yaxis_title = 'Times on Billboard'
+    else:
+        yaxis_title = f'Times Ranked #{rank} or Higher'
+
+    if year:
+        title_text = f"Hottest Artists in {year} ({market})"
+        subtitle = f"Artists with most #{rank} or Higher Song Rankings and their Songs in {year}"
+    else:
+        start_date, end_date = date
+        title_text = f"Hottest Artists from {pd.to_datetime(start_date).strftime('%d.%m.%Y')} to {pd.to_datetime(end_date).strftime('%d.%m.%Y')} ({market})"
+        subtitle = f"Artists with Most #{rank} or Higher Song Rankings and their Songs from {pd.to_datetime(start_date).strftime('%d.%m.%Y')} to {pd.to_datetime(end_date).strftime('%d.%m.%Y')}"
 
     # Create a stacked bar chart for the top 5 artists and their songs
-    fig = px.bar(top_5_data, x='main_artist_name', y='track_count', color='track_name',
-                 labels={'main_artist_name': 'Artist', 'track_count': f'Number of Times Ranked {rank} or higher', 'track_name': 'Song'},
-                 title=f"Leading Artists in {year} ({market})")
+    fig = px.bar(top_data, x='main_artist_name', y='track_count', color_discrete_sequence=['#A89CFF'],
+                 labels={'main_artist_name': 'Artist', 'track_count': yaxis_title, 'track_name': 'Song'},
+                 title=f"{title_text}<br><sup>{subtitle}</sup>", hover_data=['track_name']
+                 )
 
     # Update layout for better readability and sort from largest to smallest
-    fig.update_layout(template='plotly_white', xaxis=dict(categoryorder='total descending', tickangle=45))
+    fig.update_layout(
+        template='plotly_white',
+        xaxis=dict(categoryorder='total descending', tickangle=45),
+        title={
+            'text': f"{title_text}<br><sup>{subtitle}</sup>",
+            'x': 0.5,  # Centering the title and subtitle
+            'xanchor': 'center',
+        },
+        showlegend=False,
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=16,
+        )
+    )
 
     return fig
 
