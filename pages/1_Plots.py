@@ -195,33 +195,51 @@ def plot_scatter_song_length(glz_df):
 
 st.plotly_chart(plot_scatter_song_length(glz_df))
 
-with st.form('filter_selection'):
-    st.header('Filter Selection')
-    market_labels = {
-        None: 'All Markets',
-        'IL': 'Isreal',
-        'INTL': 'International',
-    }
-    market = st.selectbox(
-        'Market',
-        [None, 'IL', 'INTL'],
-        key='market',
-        format_func=lambda x: market_labels[x],
+st.header('Filter Selection')
+market_labels = {
+    None: 'All Markets',
+    'IL': 'Israel',
+    'INTL': 'International',
+}
+market = st.selectbox(
+    'Market',
+    [None, 'IL', 'INTL'],
+    key='market',
+    format_func=lambda x: market_labels[x],
+)
+rank = st.slider("Max rank", 1, 10, 5, 1, help='Will only filter for songs ranked better than this number (1 is the best)')
+min_date, max_date = get_date_range(glz_df)
+
+filter_type = st.radio(
+    "Choose filter type",
+    ('year', 'date'),
+    format_func=lambda x: 'Year' if x == 'year' else 'Date Range',
+    index=1,
+    key='filter_field',
+)
+
+logger.debug(f"Filter type: {st.session_state['filter_field']}")
+if st.session_state['filter_field'] == 'year':
+    date = None
+    year = st.selectbox(
+        'Select Year',
+        list(range(min_date.year, max_date.year + 1)),
+        help='Select a year to filter data',
     )
-    rank = st.slider("Max rank", 1, 10, 5, 1, help='Will only filter for songs ranked better than this number (1 is the best)')
-    min_date, max_date = get_date_range(glz_df)
+else:
+    year = None
     date = st.date_input(
-        "Select your vacation for next year",
+        "Select a date range to filter data",
         (min_date, max_date),
         min_value=min_date,
         max_value=max_date,
         format="YYYY-MM-DD",
+        help='Select a date range to filter data'
     )
     if isinstance(date, tuple):
         date = (np.datetime64(date[0]), np.datetime64(date[1]))
     else:
         date = np.datetime64(date)
-    st.form_submit_button('Filter', help='Click to filter the data', use_container_width=True)
 
 
 @st.cache_data(show_spinner=False)
@@ -332,8 +350,6 @@ def plot_top_artists_with_songs(market, year, rank, date):
     fig.update_layout(template='plotly_white', xaxis=dict(categoryorder='total descending', tickangle=45))
 
     return fig
-
-year = None
 
 st.plotly_chart(plot_artist_stats(market, year, rank, date))
 st.plotly_chart(plot_top_artists_with_songs(market, year, rank, date))
