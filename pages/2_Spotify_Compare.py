@@ -27,7 +27,7 @@ def predicate(artist_genres, genre):
     return genre in artist_genres if isinstance(artist_genres, list) else False
 
 @st.cache_data()
-def split_data(genres, split_feature, output_features):
+def split_data(df, genres, split_feature, output_features):
     if split_feature == 'None':
         return {None: abs(glz_df[output_features].values)}
     
@@ -97,6 +97,29 @@ if 'spotify' not in st.session_state:
     st.session_state.spotify = SpotifyAPI()
 if 'queried_song' not in st.session_state:
     st.session_state.queried_song = {'name': None, 'artist': None, 'album': None, 'release_date': None, 'preview_url': None, 'image_url': None, 'features': None}
+
+genre_color_map = {
+    'pop': '#FFAB80',  # Orange
+    'hip hop': '#FB8C8C',  # Red
+    'mediterranean': '#A8E6CF',  # Green
+    'mizrahi': '#D7CCF6',  # Purple
+    'rock': '#B8DFF6',  # Blue
+    'rap': '#FF8C8C',  # Pink
+    'punk': '#FBB4B4',  # Light Pink
+    'metal': '#A89CFF',  # Light Purple
+    'blues': '#CCEFFF',  # Light Blue
+    'r&b': '#F6CCF6',  # Light Lavender
+    'funk': '#FFD3B6',  # Light Peach
+    'soul': '#FFD6BB',  # Peach
+    'reggaeton': '#CCFFEA',  # Light Green
+    'folk': '#FFB4FF',  # Light Lavender
+    'country': '#B0FF80',  # Light Green
+    'dance': '#99FFC8',  # Light Green
+    'edm': '#E89CFF',  # Light Purple
+    'trance': '#B8E0FF',  # Light Blue
+    'indie': '#A8E6F6',  # Light Blue
+    'Other': '#CAB2D6'  # Light Purple
+}
 
 @st.cache_data
 def search_track(song_name, artist_name=None, album_name=None):
@@ -180,7 +203,8 @@ genres = st.multiselect(
 )
 
 def polar_graph(genres, split_feature, output_features):
-    data_slices = split_data(genres, split_feature, output_features)
+    glz_df = read_data()
+    data_slices = split_data(glz_df, genres, split_feature, output_features)
 
     min_values, max_values = data_scale_values(data_slices)
 
@@ -205,7 +229,8 @@ def polar_graph(genres, split_feature, output_features):
             r=features_trace_values,
             theta=features_repeated,
             name=name,
-            # fill='toself',
+            line=dict(color=genre_color_map[value], width=5),
+            marker=dict(color=genre_color_map[value], size=10)
         ))
 
     if res is not None:
@@ -216,8 +241,8 @@ def polar_graph(genres, split_feature, output_features):
             r=res_trace_values,
             theta=features_repeated,
             name=f'{song_name} by {artist_name}',
-            line=dict(color='red'),
-            marker=dict(color='red'),
+            line=dict(color='red', width=4),
+            marker=dict(color='red', size=8),
             # fill='toself',
         ))
 
@@ -225,13 +250,18 @@ def polar_graph(genres, split_feature, output_features):
 
     # Update layout
     fig.update_layout(
+        template='plotly_white',
         polar=dict(
             radialaxis=dict(
                 visible=True,
                 range=[0, 1]
             )),
         showlegend=True,
-        title='Radar Chart of Mean Feature Values for IL and INTL'
+        title={
+            'text': 'Musical Sentiment and Mood by Genre',
+            'x': 0.5,
+            'xanchor': 'center'
+        }
     )
 
     return fig
