@@ -1,5 +1,7 @@
 import spotipy
 from spotipy.oauth2 import SpotifyClientCredentials
+import streamlit as st
+import streamlit.components.v1 as components
 
 
 class SpotifyAPI:
@@ -26,3 +28,37 @@ class SpotifyAPI:
         for song_uri, song in zip(songs_uris, response['tracks']):
             images[song_uri] = song['album']['images'][-2]['url']
         return images
+    
+
+@st.cache_data
+def search_track(song_name, artist_name=None, album_name=None):
+    track_res = st.session_state.spotify.search_track(song_name, artist_name, album_name)
+    track_uri = track_res['tracks']['items'][0]['uri']
+    features_res = st.session_state.spotify.get_features(track_uri)
+    return track_res, features_res
+
+@st.cache_data
+def search_track(song_name, artist_name=None, album_name=None):
+    track_res = st.session_state.spotify.search_track(song_name, artist_name, album_name)
+    track_uri = track_res['tracks']['items'][0]['uri']
+    features_res = st.session_state.spotify.get_features(track_uri)
+    return track_res, features_res
+
+def play_audio(url, volume=0.5):
+    # Create a unique key for the component based on the URL
+    component_key = str(hash(url))
+
+    # HTML code for the audio player with volume control
+    html = f"""
+        <audio id="{component_key}" controls autoplay>
+            <source src="{url}" type="audio/mp3">
+            Your browser does not support the audio element.
+        </audio>
+        <script>
+            var audio = document.getElementById("{component_key}");
+            audio.volume = {volume};
+        </script>
+    """
+
+    # Create the Streamlit component
+    components.html(html, height=50)

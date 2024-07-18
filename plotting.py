@@ -5,6 +5,7 @@ import plotly.express as px
 import streamlit as st
 import pandas as pd
 import plotly.colors as colors
+import numpy as np
 
 
 
@@ -452,3 +453,68 @@ def text_plots(df):
 
     # Display the figures
     return unique_artists, top_artist, top_song, time_signature
+
+def polar_graph(genres, split_feature, output_features):
+    # List of features to include in the radar chart
+    features_repeated = output_features + [output_features[0]]
+
+    glz_df = data_wrangling.read_data()
+    data_slices = data_wrangling.split_data(glz_df, genres, split_feature, output_features)
+
+    min_values, max_values = data_wrangling.data_scale_values(data_slices)
+
+    if st.session_state.queried_song['features'] is not None:
+        res = abs(st.session_state.queried_song['features'])
+        min_values = np.minimum(min_values, res)
+        max_values = np.maximum(max_values, res)
+        res = (res - min_values) / (max_values - min_values)
+    else:
+        res = None
+
+    data_slices = {value: ((data_wrangling.get_mean_of_features(features_values) - min_values) / (max_values - min_values)) for value, features_values in data_slices.items()}
+
+    # Create radar charts for IL and INTL
+    fig = go.Figure()
+
+    for value, features_values in data_slices.items():
+        features_trace_values = features_values
+        features_trace_values =  np.concatenate((features_trace_values, np.array([features_trace_values[0]])))
+        name = value.title()
+        fig.add_trace(go.Scatterpolar(
+            r=features_trace_values,
+            theta=features_repeated,
+            name=name,
+            line=dict(color=genre_color_map[value], width=5),
+            marker=dict(color=genre_color_map[value], size=10)
+        ))
+
+    if res is not None:
+        res_trace_values = np.concatenate((res, np.array([res[0]])))
+        song_name = st.session_state.queried_song['name']
+        artist_name = st.session_state.queried_song['artist']
+        fig.add_trace(go.Scatterpolar(
+            r=res_trace_values,
+            theta=features_repeated,
+            name=f'{song_name} by {artist_name}',
+            line=dict(color='red', width=4),
+            marker=dict(color='red', size=8),
+        ))
+
+
+    # Update layout
+    fig.update_layout(
+        template='plotly_white',
+        polar=dict(
+            radialaxis=dict(
+                visible=True,
+                range=[0, 1]
+            )),
+        showlegend=True,
+        title={
+            'text': 'Musical Sentiment and Mood by Genre',
+            'x': 0.5,
+            'xanchor': 'center'
+        }
+    )
+
+    return fig

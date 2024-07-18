@@ -231,3 +231,34 @@ def text_stats(df):
     time_signatures = time_signatures.loc[4] / time_signatures.sum()
 
     return total_unique_artists, top_artist, top_song, time_signatures
+
+@st.cache_data()
+def genre_mask(df, genre, split_feature):
+    ret = df[split_feature].apply(predicate, args=(genre, ))
+    return ret
+
+def predicate(artist_genres, genre):
+    return genre in artist_genres if isinstance(artist_genres, list) else False
+
+@st.cache_data()
+def split_data(df, genres, split_feature, output_features):
+    if split_feature == 'None':
+        return {None: abs(df[output_features].values)}
+    
+    dfs = (df[genre_mask(df, genre, split_feature)] for genre in genres)
+    
+    genre_feature_values = {genre: abs(df[output_features].values) for df, genre in zip(dfs, genres)}
+    return genre_feature_values
+
+@st.cache_data()
+def data_scale_values(data_slices):
+    if len(data_slices) == 1:
+        key = next(iter(data_slices))
+        return data_slices[key].min(axis=0), data_slices[key].max(axis=0)
+    min_values = np.minimum.reduce([features_values.min(axis=0) for features_values in data_slices.values()])
+    max_values = np.maximum.reduce([features_values.max(axis=0) for features_values in data_slices.values()])
+    return min_values, max_values
+
+@st.cache_data
+def get_mean_of_features(data):
+    return data.mean(axis=0)
