@@ -7,6 +7,30 @@ import pandas as pd
 import plotly.colors as colors
 
 
+
+genre_color_map = {
+    'pop': '#FFAB80',  # Orange
+    'hip hop': '#FB8C8C',  # Red
+    'mediterranean': '#A8E6CF',  # Green
+    'mizrahi': '#D7CCF6',  # Purple
+    'rock': '#B8DFF6',  # Blue
+    'rap': '#FF8C8C',  # Pink
+    'punk': '#FBB4B4',  # Light Pink
+    'metal': '#A89CFF',  # Light Purple
+    'blues': '#CCEFFF',  # Light Blue
+    'r&b': '#F6CCF6',  # Light Lavender
+    'funk': '#FFD3B6',  # Light Peach
+    'soul': '#FFD6BB',  # Peach
+    'reggaeton': '#CCFFEA',  # Light Green
+    'folk': '#FFB4FF',  # Light Lavender
+    'country': '#B0FF80',  # Light Green
+    'dance': '#99FFC8',  # Light Green
+    'edm': '#E89CFF',  # Light Purple
+    'trance': '#B8E0FF',  # Light Blue
+    'indie': '#A8E6F6',  # Light Blue
+    'Other': '#CAB2D6'  # Light Purple
+}
+
 @st.cache_data(show_spinner=False)
 def plot_scatter_song_length(glz_df):
     distinct_songs, polynomial = data_wrangling.get_distinct_songs(glz_df)
@@ -141,15 +165,19 @@ def plot_artist_stats(market, year, rank, date):
         start_date, end_date = date
         time_period = f"from {pd.to_datetime(start_date).strftime('%d.%m.%Y')} to {pd.to_datetime(end_date).strftime('%d.%m.%y')}"
 
+    # Adjust the title based on market value
+    market_text = f"({market})" if market else ""
+    title_text = f'Artist Impact {market_text}<br><sup>Number of Songs and Average Song Time on Billboard for Top 10 Artists {time_period}</sup>'
+
     # Update layout
     fig.update_layout(
         title={
-            'text': f'Artist Impact ({market})<br><sup>Number of Songs and Average Song Time on Billboard for Top 10 Artists {time_period}</sup>',
+            'text': title_text,
             'x': 0.5,  # Centering the title and subtitle
             'xanchor': 'center'
         },
         xaxis=dict(title='Artist'),
-        yaxis=dict(title='Weeks', range=[0, 1.15 * max_x]),
+        yaxis=dict(title=None, range=[0, 1.15 * max_x]),
         template='plotly_white',
         showlegend=True,
         legend=dict(
@@ -301,3 +329,126 @@ def plot_bumpchart(df, market, year, rank, date):
     )
 
     return fig
+
+
+@st.cache_data(show_spinner=False)
+def plot_time_signature(df):
+    fig = px.bar(df,
+                y=[0,0],
+                x='Percentage',
+                orientation='h',
+                color='Category',
+                text='Category',
+                color_discrete_sequence=['#A8E6CF', '#FFD3B6'],
+                hover_name='Category',
+                )
+
+    fig.update_traces(hovertemplate='Percentage of Songs: %<br>%{x:.2f}%<extra></extra>'),
+    fig.update_yaxes(showgrid=False, showticklabels=False)
+    fig.update_layout(
+        title={
+            'text': 'Distribution of 4/4 vs Other Time Signatures',
+            'x': 0.5,  # Centering the title
+            'xanchor': 'center'
+        },
+        xaxis=dict(title='Percentage of Songs (%)', dtick=5, range=[0, 100]),
+        xaxis_tickformat=".%",
+        yaxis=dict(title=''),
+        template='plotly_white',
+        font=dict(size=16),
+    )
+    return fig
+
+
+@st.cache_data(show_spinner=False)
+def plot_mode_distribution(df):
+    # Create a combined grouped bar chart
+    fig = px.bar(df, x='year', y='proportion', color='mode',
+                facet_col='market', barmode='stack',
+                labels={'mode': 'Mode', 'proportion': 'Proportion', 'year': 'Year'},
+                title=' Major vs. Minor Mode Distribution between IL and INTL over the Years',
+                color_discrete_sequence=['#F6B8B8', '#B8DFF6'])
+
+    # Update layout to center the title
+    fig.update_layout(
+        template='plotly_white',
+        title={
+            'text': 'Major vs. Minor over the Years<br><sup>Comparison of Mode Distribution by Year and Market</sup>',
+            'x': 0.5,
+            'xanchor': 'center'
+        },
+        xaxis=dict(title='Year', dtick='Y2'),
+    )
+
+    return fig
+
+
+@st.cache_data(show_spinner=False)
+def plot_genre_trends(df, market):
+    genre_trends = data_wrangling.genre_trends(df, market)
+    # Create a stacked area chart for relative proportions
+    fig = px.area(genre_trends, x='year', y='proportion', color='simplified_artist_genres',
+                  title=f'Relative Popularity of Top 5 Genres Over Time ({market})',
+                  labels={'proportion': 'Proportion of All Songs', 'simplified_artist_genres': 'Genre'},
+                  hover_data={'proportion': ':.2f', 'simplified_artist_genres': True, 'year': None},
+                  color_discrete_map=genre_color_map)
+
+    # Centering the title
+    fig.update_layout(
+        template='plotly_white',
+        title={
+            'text': f'Relative Popularity of Top 5 Genres Over Time ({market})',
+            'x': 0.5,
+            'xanchor': 'center'
+        },
+        hovermode='x unified',
+        xaxis=dict(title='Year', dtick='Y1'),
+    )
+    return fig
+
+
+@st.cache_data(show_spinner=False)
+def text_plots(df):
+    total_unique_artists, top_artist_data, top_song_data, time_signatures = data_wrangling.text_stats(df)
+
+
+    # Visualization for Total Number of Unique Artists
+    unique_artists = go.Figure(go.Indicator(
+        mode="number",
+        value=total_unique_artists,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        number={'font': {'size': 60, 'color': '#FFAB80'}}
+    ))
+
+    # Visualization for Top Artist by Cumulative Weeks on Chart
+    top_artist = go.Figure(go.Indicator(
+        mode="number",
+        value=top_artist_data['weeks_on_chart'],
+        domain={'x': [0, 1], 'y': [0, 1]},
+        number={'font': {'size': 60, 'color': '#FF8C8C'}}
+    ))
+
+    # Visualization for Top Song by Cumulative Weeks at Number One
+    top_song = go.Figure(go.Indicator(
+        mode="number",
+        value=top_song_data['weeks_at_number_one'],
+        domain={'x': [0, 1], 'y': [0, 1]},
+        number={'font': {'size': 60, 'color': '#A8E6CF'}}
+    ))
+
+    # Visualization for Time signature distribution
+    time_signature = go.Figure(go.Indicator(
+        mode="number",
+        value=time_signatures,
+        domain={'x': [0, 1], 'y': [0, 1]},
+        number={'font': {'size': 60, 'color': '#A8E6CF'}},
+    ))
+    
+    unique_artists.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": "Total Number of Unique Artists"}, height=200)
+    top_artist.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": f"Top Artist: {top_artist_data['main_artist_name']}\nby Cumulative Weeks on Chart"}, height=200)
+    top_song.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": f"Top Song: {top_song_data['track_name']}\nby Cumulative Weeks at Number One"}, height=200)
+    time_signature.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": "Percentage of songs with 4/4 Time signature"}, height=200)
+    time_signature.update_traces(number={'valueformat': '.2%'})
+
+    # Display the figures
+    return unique_artists, top_artist, top_song, time_signature
