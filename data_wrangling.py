@@ -121,3 +121,19 @@ def circle_image(image_url):
 @st.cache_data
 def get_date_range(df):
     return df['date'].agg(['min', 'max'])
+
+@st.cache_data
+def generate_bump_data(df, market, year, rank, date):
+    filtered_data = filter_dataframe(
+        df,
+        ('market', market),
+        ('year', year),
+        ('rank', rank),
+        ('date', date),
+    )
+    return filtered_data.pivot(columns=['track_name', 'track_uri', 'main_artist_name'], index=['date'], values='rank')
+
+def score_bumpchart(col):
+    col = col.to_numpy()
+    date_penalize = 1.35 ** np.arange(len(col))
+    return (-col + 11) * date_penalize

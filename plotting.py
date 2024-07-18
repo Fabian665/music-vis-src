@@ -4,6 +4,7 @@ import plotly.graph_objects as go
 import plotly.express as px
 import streamlit as st
 import pandas as pd
+import plotly.colors as colors
 
 
 @st.cache_data(show_spinner=False)
@@ -215,6 +216,84 @@ def plot_top_artists_with_songs(market, year, rank, date):
             bgcolor="white",
             font_size=16,
         )
+    )
+
+    return fig
+
+
+@st.cache_data(show_spinner=False)
+def plot_bumpchart(df, market, year, rank, date):
+    pivot_ranks = data_wrangling.generate_bump_data(df, market, year, rank, date)
+    score = pivot_ranks.fillna(11).apply(data_wrangling.score_bumpchart).sum()
+    score_index = score.index
+    score = score.to_numpy()
+    score -= score.min()
+    score /= (score.max() - score.min())
+    cmap = colors.sample_colorscale('viridis', score)
+    cmap = dict(zip(score_index, cmap))
+
+    fig = go.Figure()
+
+    for index in pivot_ranks.columns:
+        song, _, artist = index
+        name = f'{song}, by {artist}'
+
+        fig.add_trace(go.Scatter(
+            x=pivot_ranks.index,
+            y=pivot_ranks[index],
+            mode='lines+markers',
+            name=name,
+            meta=name,
+            hovertemplate='<br>%{meta}<br>Week:%{x}<br>Postion on chart:%{y}<extra></extra>',
+            line=dict(width=2),
+            marker=dict(
+                size=7,
+                color=cmap[index],
+            ),
+            connectgaps=False,
+        ))
+
+    artwork = st.session_state['spotify'].get_songs_images(list(pivot_ranks.columns.get_level_values(1)))
+
+    for column in pivot_ranks.columns:
+        if column[1] in artwork:
+            latest_appearance = pivot_ranks[column].last_valid_index()
+            photo_url = artwork[column[1]]
+            image = data_wrangling.circle_image(photo_url)
+            fig.add_layout_image(
+                dict(
+                    source=image,
+                    xref="x",
+                    yref="y",
+                    xanchor="center",
+                    yanchor="middle",
+                    x=latest_appearance,
+                    y=pivot_ranks.loc[latest_appearance][column],
+                    sizex=8.64e7 * 2,
+                    sizey=3,
+                    sizing="contain",
+                    layer="above"
+                )
+            )
+
+    # Customize the chart's appearance
+    fig.update_layout(
+        title={
+            'text': f'Bump Chart of Top {rank} Artists by Chart Appearances<br><sup>Cumulative Counts of Chart Appearances</sup>',
+            'x': 0.5,
+            'xanchor': 'center'
+        },
+        xaxis_title='Date',
+        yaxis_title='Rank',
+        yaxis=dict(autorange="reversed"),
+        width=1200,
+        height=600,
+        template='plotly_white',
+        hoverlabel=dict(
+            bgcolor="white",
+            font_size=20,
+        ),
+        showlegend=False,
     )
 
     return fig
