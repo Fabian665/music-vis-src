@@ -22,18 +22,17 @@ mode_distribution_df = data_wrangling.mode_distribution(glz_df)
 col1, col2, col3, col4 = st.columns(4)
 unique_artists, top_artist, top_song, time_signature = plotting.text_plots(glz_df)
 with col1:
-    st.plotly_chart(unique_artists)
+    st.plotly_chart(time_signature)
 with col2:
     st.plotly_chart(top_song)
 with col3:
     st.plotly_chart(top_artist)
 with col4:
-    st.plotly_chart(time_signature)
+    st.plotly_chart(unique_artists)
 
 col1, col2 = st.columns(2)
 with col1:
     # st.plotly_chart(plotting.plot_time_signature(time_signature_df))
-
     market_labels = {
         None: 'All Markets',
         'IL': 'Israel',
