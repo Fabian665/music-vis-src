@@ -6,6 +6,16 @@ from ast import literal_eval
 import pandas as pd
 import numpy as np
 import plotly.graph_objects as go
+st.set_page_config(
+    page_title="Genre Feature Compare",
+    page_icon="🎵",
+    layout="centered",
+    # menu_items={
+    #     'Get Help': 'https://www.extremelycoolapp.com/help',
+    #     'Report a bug': "https://www.extremelycoolapp.com/bug",
+    #     'About': "# This is a header. This is an *extremely* cool app!"
+    # }
+)
 
 logger = get_logger(__name__)
 

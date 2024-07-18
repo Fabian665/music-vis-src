@@ -284,16 +284,20 @@ def plot_bumpchart(df, market, year, rank, date):
             'xanchor': 'center'
         },
         xaxis_title='Date',
+        xaxis=dict(
+            tick0=pivot_ranks.index.min(),
+            dtick=604800000,
+        ),
         yaxis_title='Rank',
         yaxis=dict(autorange="reversed"),
-        width=1200,
-        height=600,
+        height=800,
         template='plotly_white',
         hoverlabel=dict(
             bgcolor="white",
             font_size=20,
         ),
         showlegend=False,
+        dragmode=False,
     )
 
     return fig
