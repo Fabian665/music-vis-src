@@ -69,3 +69,26 @@ with st.form('date_range'):
 
 
 st.plotly_chart(plotting.plot_bumpchart(glz_df, market, None, 10, date))
+
+glz_df = data_wrangling.read_data()
+
+# Plot song duration over time
+st.subheader("Song Duration Over Time")
+st.plotly_chart(plotting.plot_scatter_song_length(glz_df))
+
+
+mode_distribution_df = data_wrangling.mode_distribution(glz_df)
+
+st.title("Major vs. Minor over the Years")
+st.plotly_chart(plotting.plot_mode_distribution(mode_distribution_df))
+
+
+time_signature_df = data_wrangling.time_signature_distribution(glz_df)
+time_signature = plotting.text_plots(glz_df)[3]
+
+st.plotly_chart(time_signature)
+
+
+top_song = plotting.text_plots(glz_df)[2]
+
+st.plotly_chart(top_song)

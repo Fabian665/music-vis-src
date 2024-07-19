@@ -125,3 +125,18 @@ genres = st.multiselect(
 
 graph = plotting.polar_graph(genres, split_feature, features)
 st.plotly_chart(graph, use_container_width=True)
+
+
+market_labels = {
+    None: 'All Markets',
+    'IL': 'Israel',
+    'INTL': 'International',
+}
+market = st.selectbox(
+    'Market',
+    [None, 'IL', 'INTL'],
+    key='market',
+    format_func=lambda x: market_labels[x],
+)
+
+st.plotly_chart(plotting.plot_genre_trends(glz_df, market))
