@@ -5,8 +5,8 @@ import numpy as np
 from spotify import SpotifyAPI
 import streamlit as st
 st.set_page_config(
-    page_title="Top 10",
-    page_icon="🥇",
+    page_title="Song Mania",
+    page_icon="🎶",
     layout="wide",
     initial_sidebar_state="collapsed",
 )
@@ -25,7 +25,7 @@ st.plotly_chart(plotting.plot_mode_distribution(mode_distribution_df))
 
 
 time_signature_df = data_wrangling.time_signature_distribution(glz_df)
-_, top_song, time_signature, _ = plotting.text_plots(glz_df)
+_, _, top_song, time_signature = plotting.text_plots(glz_df)
 
 col1, col2 = st.columns(2)
 

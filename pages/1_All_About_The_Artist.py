@@ -8,7 +8,7 @@ import plotting
 # Set page configuration
 st.set_page_config(
     page_title="General Plots",
-    page_icon="📈",
+    page_icon="🎤",
     layout="centered",
 )
 
