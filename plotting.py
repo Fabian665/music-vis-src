@@ -516,12 +516,14 @@ def polar_graph(genres, split_feature, output_features):
                 visible=True,
                 range=[0, 1]
             )),
-        showlegend=True,
-        title={
-            'text': 'Musical Sentiment and Mood by Genre',
-            'x': 0.5,
-            'xanchor': 'center'
-        }
+        legend=dict(
+            yanchor="top",
+            y=-0.1,
+            xanchor="center",
+            x=0.5,
+            orientation="h",
+        ),
+        margin=dict(t=5, l=0, r=0),
     )
 
     return fig
