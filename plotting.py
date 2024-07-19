@@ -251,8 +251,8 @@ def plot_top_artists_with_songs(market, year, rank, date):
 
 
 @st.cache_data(show_spinner=False)
-def plot_bumpchart(df, market, year, rank, date):
-    pivot_ranks = data_wrangling.generate_bump_data(df, market, year, rank, date)
+def plot_bumpchart(df, market, date):
+    pivot_ranks = data_wrangling.generate_bump_data(df, market, date)
     score = pivot_ranks.fillna(11).apply(data_wrangling.score_bumpchart).sum()
     score_index = score.index
     score = score.to_numpy()
@@ -274,9 +274,9 @@ def plot_bumpchart(df, market, year, rank, date):
             name=name,
             meta=name,
             hovertemplate='<br>%{meta}<br>Week:%{x}<br>Postion on chart:%{y}<extra></extra>',
-            line=dict(width=2),
+            line=dict(width=4),
             marker=dict(
-                size=7,
+                size=10,
                 color=cmap[index],
             ),
             connectgaps=False,
@@ -292,14 +292,15 @@ def plot_bumpchart(df, market, year, rank, date):
             fig.add_layout_image(
                 dict(
                     source=image,
+                    name=f'{column[0]} by {column[1]}',
                     xref="x",
                     yref="y",
                     xanchor="center",
                     yanchor="middle",
                     x=latest_appearance,
                     y=pivot_ranks.loc[latest_appearance][column],
-                    sizex=8.64e7 * 2,
-                    sizey=3,
+                    sizex=8.64e7 * 1.8,
+                    sizey=1,
                     sizing="contain",
                     layer="above"
                 )
@@ -308,9 +309,12 @@ def plot_bumpchart(df, market, year, rank, date):
     # Customize the chart's appearance
     fig.update_layout(
         title={
-            'text': f'Bump Chart of Top {rank} Artists by Chart Appearances<br><sup>Cumulative Counts of Chart Appearances</sup>',
-            'x': 0.5,
-            'xanchor': 'center'
+            'text': f'Weekly ranks from {pivot_ranks.index.min().date()} to {pivot_ranks.index.max().date()}',
+            'x': 0,
+            'xanchor': 'left',
+            'font': dict(
+                size=20,
+            ),
         },
         xaxis_title='Date',
         xaxis=dict(
@@ -318,7 +322,10 @@ def plot_bumpchart(df, market, year, rank, date):
             dtick=604800000,
         ),
         yaxis_title='Rank',
-        yaxis=dict(autorange="reversed"),
+        yaxis=dict(
+            autorange="reversed",
+            dtick=1,
+        ),
         height=800,
         template='plotly_white',
         hoverlabel=dict(

@@ -9,19 +9,13 @@ st.set_page_config(
     page_icon="🥇",
     layout="wide",
     initial_sidebar_state="collapsed",
-    # menu_items={
-    #     'Get Help': 'https://www.extremelycoolapp.com/help',
-    #     'Report a bug': "https://www.extremelycoolapp.com/bug",
-    #     'About': "# This is a header. This is an *extremely* cool app!"
-    # }
 )
 
 
 if 'spotify' not in st.session_state:
     st.session_state.spotify = SpotifyAPI()
 
-st.header('Galgalaz Top 10 Visualized')
-# explain about bump charts
+st.header('Visualization of Galgalaz Weekly Top 10 Charts')
 
 glz_df = data_wrangling.read_data()
 
@@ -68,4 +62,4 @@ with st.form('date_range'):
     st.form_submit_button('Plot Week')
 
 
-st.plotly_chart(plotting.plot_bumpchart(glz_df, market, None, 10, date))
+st.plotly_chart(plotting.plot_bumpchart(glz_df, market, date))

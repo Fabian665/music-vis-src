@@ -123,12 +123,10 @@ def get_date_range(df):
     return df['date'].agg(['min', 'max'])
 
 @st.cache_data(show_spinner=False)
-def generate_bump_data(df, market, year, rank, date):
+def generate_bump_data(df, market, date):
     filtered_data = filter_dataframe(
         df,
         ('market', market),
-        ('year', year),
-        ('rank', rank),
         ('date', date),
     )
     return filtered_data.pivot(columns=['track_name', 'track_uri', 'main_artist_name'], index=['date'], values='rank')
