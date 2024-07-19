@@ -17,6 +17,9 @@ if 'spotify' not in st.session_state:
 
 st.header('Visualization of Galgalaz Weekly Top 10 Charts')
 
+
+
+
 glz_df = data_wrangling.read_data()
 
 min_date_data, max_date_data = data_wrangling.get_date_range(glz_df)

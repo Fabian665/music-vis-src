@@ -23,11 +23,10 @@ if 'spotify' not in st.session_state:
 glz_df = data_wrangling.read_data()
 
 # Title and introduction
-st.title("General Plots for Galgalatz Charts Analysis")
+st.title("Artist Insights from the Galgalatz Charts")
 st.markdown(
     """
-    Explore the dynamic trends in the Galgalatz charts over the past decade. Use the filters below to customize your view.
-    """
+Explore the dynamic world of the top artists on the Galgalatz charts over the past decade.    """
 )
 
 

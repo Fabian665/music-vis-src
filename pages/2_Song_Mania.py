@@ -7,11 +7,21 @@ import streamlit as st
 st.set_page_config(
     page_title="Song Mania",
     page_icon="🎶",
-    layout="wide",
     initial_sidebar_state="collapsed",
 )
 
 glz_df = data_wrangling.read_data()
+
+
+# Title and introduction
+st.title("Song Mania: Unveiling the Top Hits of Galgalatz")
+st.markdown(
+    """
+    Welcome to Song Mania! 🎵 Dive into the world of the top hits that have dominated the Galgalatz charts over the past decade.
+    Discover the trends in the music and find out how these elements have evolved over the years.
+    """
+)
+
 
 # Plot song duration over time
 st.subheader("Song Duration Over Time")
@@ -20,7 +30,7 @@ st.plotly_chart(plotting.plot_scatter_song_length(glz_df))
 
 mode_distribution_df = data_wrangling.mode_distribution(glz_df)
 
-st.title("Major vs. Minor over the Years")
+st.subheader("Major vs. Minor over the Years")
 st.plotly_chart(plotting.plot_mode_distribution(mode_distribution_df))
 
 

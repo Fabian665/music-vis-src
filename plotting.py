@@ -453,9 +453,9 @@ def text_plots(df):
     ))
     
     unique_artists.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": "Total Number of Unique Artists"}, height=200)
-    top_artist.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": f"Top Artist: {top_artist_data['main_artist_name']}\nby Cumulative Weeks on Chart"}, height=200)
-    top_song.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": f"Top Song: {top_song_data['track_name']}\nby Cumulative Weeks at Number One"}, height=200)
-    time_signature.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": "Percentage of songs with 4/4 Time signature"}, height=200)
+    top_artist.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": f"Top Artist: {top_artist_data['main_artist_name']}<br>by Cumulative Weeks on Chart"}, height=200)
+    top_song.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": f"Top Song: {top_song_data['track_name']}<br>by Cumulative Weeks at Number One"}, height=200)
+    time_signature.update_layout(title={'x': 0.5, 'xanchor': 'center', "text": "Percentage of Songs with 4/4 Time Signature"}, height=200)
     time_signature.update_traces(number={'valueformat': '.2%'})
 
     # Display the figures

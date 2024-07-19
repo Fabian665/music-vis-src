@@ -4,7 +4,6 @@ import streamlit as st
 st.set_page_config(
     page_title="Galgalatz Charts Visualization",
     page_icon="🎵",
-    layout="wide",
 )
 
 # Welcome message
@@ -20,8 +19,8 @@ st.markdown(
 # Sidebar success message
 st.sidebar.success("Select a dashboard from the sidebar.")
 
-
-# Footer
+# Display the image
+st.image("cover_image.webp", use_column_width=True)# Footer
 st.markdown("---")
 st.markdown(
     """
