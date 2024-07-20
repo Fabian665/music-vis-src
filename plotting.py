@@ -311,7 +311,7 @@ def plot_bumpchart(df, market, date):
     # Customize the chart's appearance
     fig.update_layout(
         title={
-            'text': f'Weekly ranks from {pivot_ranks.index.min().date()} to {pivot_ranks.index.max().date()}',
+            'text': f'Weekly Ranks from {pivot_ranks.index.min().date()} to {pivot_ranks.index.max().date()}',
             'x': 0,
             'xanchor': 'left',
             'font': dict(
