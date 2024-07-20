@@ -260,3 +260,22 @@ def data_scale_values(data_slices):
 @st.cache_data
 def get_mean_of_features(data):
     return data.mean(axis=0)
+
+@st.cache_data(show_spinner=False)
+def top_hits_data(glz_df, market, rank, sort_by):
+    if rank == 1:
+        column_name = 'Weeks at Number One'
+    elif rank == 10:
+        column_name = 'Total Weeks in Billboard'
+    
+    market_data = filter_dataframe(glz_df, ('market', market), ('rank', rank))
+
+    weeks_at_number_one = market_data.groupby(['year', 'track_name', 'main_artist_name']).size().reset_index(name=column_name)
+    top_hits = weeks_at_number_one.groupby('year').apply(lambda x: x.nlargest(1, column_name)).reset_index(drop=True)
+
+    top_hits['track_name_wrapped'] = top_hits['track_name']
+    if sort_by == 'year':
+        top_hits = top_hits.sort_values(by='year', ascending=True)
+    else:
+        top_hits = top_hits.sort_values(by=column_name, ascending=False)
+    return top_hits, column_name

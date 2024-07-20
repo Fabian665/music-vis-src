@@ -23,6 +23,37 @@ st.markdown(
 )
 
 
+# New section: Yearly Top Song Analysis
+st.subheader("Yearly Top Song Analysis")
+
+# Sidebar filter options
+market_labels = {
+    'IL': 'Israel',
+    'INTL': 'International',
+}
+market = st.selectbox(
+    'Market',
+    ['IL', 'INTL'],
+    key='market',
+    format_func=lambda x: market_labels[x],
+)
+
+criteria = st.radio(
+    "Criteria",
+    (1, 10),
+    format_func=lambda x: 'Number One Weeks' if x == 1 else 'Total Weeks on Billboard',
+)
+
+sort_by = st.radio(
+    "Sort By",
+    ('year', 'criteria'),
+    format_func=lambda x: 'Year' if x == 'year' else 'Criteria',
+)
+
+
+st.plotly_chart(plotting.plot_top_hits(glz_df, market, criteria, sort_by))
+
+
 # Plot song duration over time
 st.subheader("Song Duration Over Time")
 st.plotly_chart(plotting.plot_scatter_song_length(glz_df))

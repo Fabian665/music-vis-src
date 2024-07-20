@@ -217,12 +217,14 @@ def plot_top_artists_with_songs(market, year, rank, date):
     else:
         yaxis_title = f'Times Ranked #{rank} or Higher'
 
+    market_text = '' if market is None else f'({market})'
+
     if year:
-        title_text = f"Hottest Artists in {year} ({market})"
+        title_text = f"Hottest Artists in {year} {market_text}"
         subtitle = f"Artists with most #{rank} or Higher Song Rankings and their Songs in {year}"
     else:
         start_date, end_date = date
-        title_text = f"Hottest Artists from {pd.to_datetime(start_date).strftime('%d.%m.%Y')} to {pd.to_datetime(end_date).strftime('%d.%m.%Y')} ({market})"
+        title_text = f"Hottest Artists from {pd.to_datetime(start_date).strftime('%d.%m.%Y')} to {pd.to_datetime(end_date).strftime('%d.%m.%Y')} {market_text}"
         subtitle = f"Artists with Most #{rank} or Higher Song Rankings and their Songs from {pd.to_datetime(start_date).strftime('%d.%m.%Y')} to {pd.to_datetime(end_date).strftime('%d.%m.%Y')}"
 
     # Create a stacked bar chart for the top 5 artists and their songs
@@ -385,8 +387,8 @@ def plot_mode_distribution(df):
             'x': 0.5,
             'xanchor': 'center'
         },
-        xaxis=dict(title='Year', dtick='Y2'),
     )
+    fig.update_xaxes(title='Year', dtick='Y1')
 
     return fig
 
@@ -524,6 +526,37 @@ def polar_graph(genres, split_feature, output_features):
             orientation="h",
         ),
         margin=dict(t=5, l=0, r=0),
+    )
+
+    return fig
+
+@st.cache_data(show_spinner=False)
+def plot_top_hits(glz_df, market, rank, sort_by):
+    top_hits, column_name = data_wrangling.top_hits_data(glz_df, market, rank, sort_by)
+    
+    fig = go.Figure()
+    fig.add_trace(go.Bar(
+        y=top_hits['track_name_wrapped'],
+        x=top_hits[column_name],
+        text=top_hits['year'],
+        name=column_name,
+        marker_color='#A89CFF',  # Using a pastel color for the bars
+        textposition='inside',
+        insidetextanchor='middle',
+        textfont_color='white',
+        orientation='h'
+    ))
+
+    fig.update_layout(
+        title={
+            'text': f'Yearly Top Song Based on {column_name} ({market})',
+            'x': 0.5,  # Centering the title
+            'xanchor': 'center'
+        },
+        xaxis=dict(title='Number of Weeks'),
+        yaxis=dict(title='Song'),
+        legend_title_text='Metric',
+        template='plotly_white'
     )
 
     return fig
