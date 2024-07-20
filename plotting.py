@@ -6,6 +6,7 @@ import streamlit as st
 import pandas as pd
 import plotly.colors as colors
 import numpy as np
+from spotipy.client import SpotifyException
 
 
 
@@ -111,9 +112,10 @@ def plot_artist_stats(market, year, rank, date):
     # Create dictionary of artists images
     uris = plot_df['main_artist'].tolist()
 
-    # DONOT DELETE
-    artist_photos = st.session_state['spotify'].get_artists_images(uris)  # dashboard
-    # artist_photos = get_artists_images(uris)  # colab
+    try:
+        artist_photos = st.session_state['spotify'].get_artists_images(uris)  # dashboard
+    except SpotifyException:
+        artist_photos = {}
 
     # Create a scatter plot for the number of different songs and average song time on the billboard
     fig = go.Figure()
@@ -283,30 +285,32 @@ def plot_bumpchart(df, market, date):
             ),
             connectgaps=False,
         ))
+    try:
+        artwork = st.session_state['spotify'].get_songs_images(list(pivot_ranks.columns.get_level_values(1)))
 
-    artwork = st.session_state['spotify'].get_songs_images(list(pivot_ranks.columns.get_level_values(1)))
-
-    for column in pivot_ranks.columns:
-        if column[1] in artwork:
-            latest_appearance = pivot_ranks[column].last_valid_index()
-            photo_url = artwork[column[1]]
-            image = data_wrangling.circle_image(photo_url)
-            fig.add_layout_image(
-                dict(
-                    source=image,
-                    name=f'{column[0]} by {column[1]}',
-                    xref="x",
-                    yref="y",
-                    xanchor="center",
-                    yanchor="middle",
-                    x=latest_appearance,
-                    y=pivot_ranks.loc[latest_appearance][column],
-                    sizex=8.64e7 * 1.8,
-                    sizey=1,
-                    sizing="contain",
-                    layer="above"
+        for column in pivot_ranks.columns:
+            if column[1] in artwork:
+                latest_appearance = pivot_ranks[column].last_valid_index()
+                photo_url = artwork[column[1]]
+                image = data_wrangling.circle_image(photo_url)
+                fig.add_layout_image(
+                    dict(
+                        source=image,
+                        name=f'{column[0]} by {column[1]}',
+                        xref="x",
+                        yref="y",
+                        xanchor="center",
+                        yanchor="middle",
+                        x=latest_appearance,
+                        y=pivot_ranks.loc[latest_appearance][column],
+                        sizex=8.64e7 * 1.8,
+                        sizey=1,
+                        sizing="contain",
+                        layer="above"
+                    )
                 )
-            )
+    except SpotifyException:
+        pass
 
     # Customize the chart's appearance
     fig.update_layout(

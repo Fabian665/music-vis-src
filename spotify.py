@@ -6,7 +6,15 @@ import streamlit.components.v1 as components
 
 class SpotifyAPI:
     def __init__(self):
-        self.sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials())
+        if 'spotipy' not in st.secrets:
+            # for local development
+            self.sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials())
+        else:
+            # for deployment
+            self.sp = spotipy.Spotify(auth_manager=SpotifyClientCredentials(
+                client_id=st.secrets['spotipy']['client_id'],
+                client_secret=st.secrets['spotipy']['client_secret']
+            ))
 
     def search_track(self, song_name: str, artist_name: str = None, album_name: str = None):
         query = f'{song_name} {artist_name} {album_name}'

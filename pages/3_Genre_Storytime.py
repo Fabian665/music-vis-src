@@ -1,5 +1,6 @@
 import streamlit as st
 import spotify
+from spotipy.client import SpotifyException
 from streamlit.logger import get_logger
 import pandas as pd
 import numpy as np
@@ -72,25 +73,28 @@ with col1:
         submitted = st.form_submit_button('Search')
 
         if submitted:
-            result_track, result_features = spotify.search_track(song_name, artist_name, album_name)
-            if result_track['tracks']['items']:
-                track = result_track['tracks']['items'][0]
-                audio_features = result_features[0]
-                st.session_state.queried_song['name'] = track['name']
-                st.session_state.queried_song['artist'] = track['artists'][0]['name']
-                st.session_state.queried_song['album'] = track['album']['name']
-                st.session_state.queried_song['release_date'] = track['album']['release_date']
-                st.session_state.queried_song['preview_url'] = track['preview_url']
-                st.session_state.queried_song['image_url'] = track['album']['images'][0]['url']
-                st.session_state.queried_song['features'] = np.array([audio_features[feature] for feature in features])
-            else:
-                st.session_state.queried_song['name'] = None
-                st.session_state.queried_song['artist'] = None
-                st.session_state.queried_song['album'] = None
-                st.session_state.queried_song['release_date'] = None
-                st.session_state.queried_song['preview_url'] = None
-                st.session_state.queried_song['image_url'] = None
-                st.session_state.queried_song['features'] = None
+            try:
+                result_track, result_features = spotify.search_track(song_name, artist_name, album_name)
+                if result_track['tracks']['items']:
+                    track = result_track['tracks']['items'][0]
+                    audio_features = result_features[0]
+                    st.session_state.queried_song['name'] = track['name']
+                    st.session_state.queried_song['artist'] = track['artists'][0]['name']
+                    st.session_state.queried_song['album'] = track['album']['name']
+                    st.session_state.queried_song['release_date'] = track['album']['release_date']
+                    st.session_state.queried_song['preview_url'] = track['preview_url']
+                    st.session_state.queried_song['image_url'] = track['album']['images'][0]['url']
+                    st.session_state.queried_song['features'] = np.array([audio_features[feature] for feature in features])
+                else:
+                    st.session_state.queried_song['name'] = None
+                    st.session_state.queried_song['artist'] = None
+                    st.session_state.queried_song['album'] = None
+                    st.session_state.queried_song['release_date'] = None
+                    st.session_state.queried_song['preview_url'] = None
+                    st.session_state.queried_song['image_url'] = None
+                    st.session_state.queried_song['features'] = None
+            except SpotifyException as e:
+                st.error('An error occurred while searching for the song, try again later', icon='🔍')
 
         if st.session_state.queried_song['name']:
             col11, col12 = st.columns(2)

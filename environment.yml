@@ -1,0 +1,12 @@
+name: streamlit-music-vis
+channels:
+  - defaults
+dependencies:
+  - python=3.11.9
+  - plotly==5.22.0
+  - pip:
+    - spotipy==2.24.0
+    - streamlit==1.36.0
+    - gcsfs==2024.6.1
+    - st-files-connection==0.1.0
+prefix: C:\ProgramData\Anaconda3\envs\streamlit-music-vis

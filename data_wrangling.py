@@ -6,11 +6,19 @@ from numpy.polynomial import Polynomial
 from PIL import Image, ImageDraw
 import requests
 from io import BytesIO
+try:
+    from st_files_connection import FilesConnection
+except ModuleNotFoundError:
+    pass
 
 
 @st.cache_data(show_spinner=False)
 def read_data():
-    df = pd.read_csv('/data/galgalaz_expanded.csv')
+    try:
+        df = pd.read_csv('/data/galgalaz_expanded.csv')
+    except FileNotFoundError:
+        conn = st.connection('gcs', type=FilesConnection)
+        df = conn.read("music-vis-data/galgalaz_2024_07_18.csv", input_format='csv')
 
     df['artist_genres'] = df['artist_genres'].apply(lambda x: literal_eval(x) if isinstance(x, str) else x)
     df['simplified_artist_genres'] = df['simplified_artist_genres'].apply(lambda x: literal_eval(x) if isinstance(x, str) else x)
@@ -50,7 +58,6 @@ def get_distinct_songs(df):
 def get_artist_song_count(df):
     artist_song_count = (
         df.groupby("main_artist_name")
-        #   .agg(unique_tracks='nunique', chart_appearances='count')
         .agg({
             'main_artist': 'first',
             'track_name': ['nunique', 'count'],
