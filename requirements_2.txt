@@ -1,5 +1,5 @@
 plotly==5.22.0
-spotipy==2.24.0
+spotipy==2.25.1
 streamlit==1.36.0
 gcsfs==2024.6.1
 st-files-connection==0.1.0
